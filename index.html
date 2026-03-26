@@ -8,371 +8,728 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #F5F5F3; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    </style>
+    <script src="https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.js"></script>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
-
-        const EXCHANGE_RATE = 0.21;
-
-        // 🛡️ 100% 完整清單資料
-        const INITIAL_CHECKLIST = [
-            { id: 1, group: '證件類', text: '護照 (效期6個月以上)', checked: false },
-            { id: 2, group: '證件類', text: 'JR PASS 預約 QR Code', checked: false },
-            { id: 3, group: '證件類', text: '機票電子憑證', checked: false },
-            { id: 4, group: '證件類', text: '住宿確認單', checked: false },
-            { id: 5, group: '票券類', text: 'JR 關西廣域鐵路周遊券', checked: false },
-            { id: 6, group: '票券類', text: '樂桃航空機票', checked: false },
-            { id: 7, group: '金錢相關', text: '日幣現金 7~8 萬', checked: false },
-            { id: 8, group: '金錢相關', text: '信用卡 2 張', checked: false },
-            { id: 9, group: '行李物品', text: '29吋大行李箱', checked: false },
-        ];
-
-        // 🛡️ 100% 詳細行程資料
-        const ITINERARY_DATA = [
-            { day: 1, date: "04/06", title: "花蓮 ➔ 台北 ➔ 關西機場", location: "泉佐野", events: [
-                { time: "12:18", type: "🚄", title: "花蓮火車站", desc: "台鐵 417 次 (EMU3000)" },
-                { time: "14:31", type: "ℹ️", title: "抵達台北車站", desc: "步行轉乘機場捷運" },
-                { time: "14:45", type: "🚄", title: "台北車站 (A1)", desc: "機捷直達車 ➔ 機場 T1" },
-                { time: "18:15", type: "✈️", title: "樂桃 MM028 起飛", desc: "桃園機場 T1" },
-                { time: "22:00", type: "ℹ️", title: "抵達關西 T2", desc: "入境後搭接駁車至 T1" },
-                { time: "23:00", type: "🎟️", title: "領取 JR PASS & 指定席券", desc: "尋找綠色售票機 (地球儀標示)", tag: "#重要任務" },
-                { time: "23:29", type: "🚄", title: "關西機場站", desc: "南海電鐵 ➔ 臨空城" },
-                { time: "23:50", type: "🏨", title: "入住 華盛頓飯店", desc: "臨空城站步行3分" }
-            ]},
-            { day: 2, date: "04/07", title: "直奔天橋立 & 伊根", location: "伊根", events: [
-                { time: "05:40", type: "📋", title: "飯店退房", desc: "步行前往臨空城站" },
-                { time: "05:55", type: "🚄", title: "臨空城站 (JR)", desc: "搭乘至關西機場 (1站)" },
-                { time: "06:31", type: "🚄", title: "特急 HARUKA 2號", desc: "關西機場 ➔ 京都 (月台 4)", tag: "#指定席券①" },
-                { time: "07:54", type: "🛅", title: "京都站寄存大行李", desc: "B1F Crosta 或大型置物櫃", tag: "#關鍵任務" },
-                { time: "08:38", type: "🚄", title: "特急 Hashidate 1號", desc: "京都 (31號月台) ➔ 天橋立", tag: "#指定席券②" },
-                { time: "10:45", type: "ℹ️", title: "抵達天橋立", desc: "開始天橋立精華遊" },
-                { time: "13:46", type: "🚌", title: "丹海巴士 (伊根線)", desc: "天橋立站前上車" },
-                { time: "14:41", type: "ℹ️", title: "抵達伊根", desc: "步行至舟屋" },
-                { time: "15:00", type: "🏨", title: "入住 伊根の舟屋 雅 別邸", desc: "享受舟屋時光" }
-            ]},
-            { day: 3, date: "04/08", title: "天橋立 ➔ 美山", location: "美山", events: [
-                { time: "08:30", type: "🚌", title: "丹海巴士", desc: "離開伊根 ➔ 天橋立站" },
-                { time: "09:50", type: "🚄", title: "特急 Hashidate 2號", desc: "天橋立 ➔ 園部 (直達免轉車)", tag: "#指定席券③" },
-                { time: "11:37", type: "ℹ️", title: "抵達園部站", desc: "站內換月台 (9分鐘緩衝)" },
-                { time: "11:46", type: "🚄", title: "JR 山陰本線", desc: "園部 ➔ 日吉 (普通車)" },
-                { time: "11:54", type: "ℹ️", title: "抵達日吉站", desc: "出站等候公車 (16分鐘緩衝)" },
-                { time: "12:10", type: "🚌", title: "南丹市營巴士", desc: "日吉站前上車 (投幣 ¥600)" },
-                { time: "13:06", type: "ℹ️", title: "抵達美山・知見口", desc: "步行至飯店" },
-                { time: "15:00", type: "🏨", title: "入住 美山河鹿莊", desc: "含一泊二食" }
-            ]},
-            { day: 4, date: "04/09", title: "美山 ➔ 嵐山 ➔ 大津", location: "大津", events: [
-                { time: "10:30", type: "📋", title: "準備離開美山", desc: "前往「知見口」或「北」站牌" },
-                { time: "10:48", type: "🚌", title: "南丹市營巴士", desc: "知見口 (10:48) / 北 (10:51)" },
-                { time: "11:47", type: "ℹ️", title: "抵達日吉站", desc: "準備轉乘 JR" },
-                { time: "12:04", type: "🚄", title: "JR 普通車", desc: "日吉 ➔ 園部" },
-                { time: "12:16", type: "🚄", title: "JR 普通車 (往京都)", desc: "園部 ➜ 馬堀 (12:38 抵達)", tag: "#關鍵轉乘" },
-                { time: "12:45", type: "🚶", title: "步行至小火車龜岡站", desc: "田野小路 10 分鐘" },
-                { time: "13:30", type: "🚂", title: "嵐山小火車 (嵯峨野觀光鐵道)", desc: "小火車龜岡站 ➔ 小火車嵐山站", tag: "#已預約指定席", ticket: "https://linkt.to/Ucou23Mw", memo: "需出示當天顯示之連結內容進站" },
-                { time: "17:10", type: "🚄", title: "JR 嵯峨野線", desc: "嵯峨嵐山 ➔ 京都" },
-                { time: "19:40", type: "🛅", title: "領回大行李", desc: "京都站 B1 寄存處", tag: "#關鍵任務" },
-                { time: "20:00", type: "🚄", title: "JR 琵琶湖線", desc: "京都 ➔ 大津 (10 分鐘)" },
-                { time: "20:20", type: "🏨", title: "入住 Super Hotel 大津", desc: "車站旁" }
-            ]},
-            { day: 5, date: "04/10", title: "近江八幡 ➔ 關西機場", location: "泉佐野", events: [
-                { time: "08:30", type: "📋", title: "飯店退房", desc: "帶著行李出發" },
-                { time: "08:45", type: "🚄", title: "JR 琵琶湖線", desc: "大津 ➜ 近江八幡 (09:15 抵)" },
-                { time: "09:20", type: "🛅", title: "近江八幡寄存行李", desc: "JR 車站置物櫃", tag: "#關鍵任務" },
-                { time: "09:30", type: "🚌", title: "近江鐵道巴士", desc: "前往 La Collina" },
-                { time: "15:00", type: "🛅", title: "領回行李", desc: "回到近江八幡站" },
-                { time: "15:25", type: "🚄", title: "JR 新快速", desc: "近江八幡 ➜ 京都 (16:00 抵)" },
-                { time: "16:30", type: "🚄", title: "特急 HARUKA 43號", desc: "京都 ➜ 關西機場", tag: "#指定席券④" },
-                { time: "17:51", type: "🚄", title: "南海電鐵/JR", desc: "關西機場 ➜ 臨空城" },
-                { time: "20:30", type: "🏨", title: "入住 R Hotel 泉佐野", desc: "整理行李" }
-            ]},
-            { day: 6, date: "04/11", title: "早班機回家", location: "花蓮", events: [
-                { time: "05:25", type: "🚶", title: "步行前往車站", desc: "泉佐野站" },
-                { time: "05:40", type: "🚆", title: "南海電鐵", desc: "泉佐野 ➜ 關西機場 (T1)" },
-                { time: "06:00", type: "🚌", title: "接駁巴士", desc: "T1 ➔ T2" },
-                { time: "07:50", type: "✈️", title: "樂桃 MM023 起飛", desc: "關西 T2 ➜ 桃園 T1" },
-                { time: "14:58", type: "ℹ️", title: "抵達花蓮", desc: "旅途圓滿結束" }
-            ]}
-        ];
-
-        // 🛡️ 100% 完整航班與住宿資訊
-        const FLIGHT_INFO = [
-            { date: '04/06 (一)', route: '台北 TPE ➔ 關西 KIX', time: '18:15 - 22:00', code: 'Peach MM028', note: '機票 $6,810/人 | 樂桃 EAVV8W' },
-            { date: '04/11 (六)', route: '關西 KIX ➔ 台北 TPE', time: '07:50 - 09:55', code: 'Peach MM023', note: '兩人共 20kg 託運 | 手提 7kg/人' }
-        ];
-
-        const HOTEL_INFO = [
-            { date: '04/06', name: 'City Hotel Airport in Prince', loc: '泉佐野', price: 'NT$ 1,903', code: '5645140186', tel: '+81-72-462-0909' },
-            { date: '04/07', name: '伊根舟屋美雅Villa', loc: '伊根', price: 'NT$ 2,743', code: '1318504025' },
-            { date: '04/08', name: '美山自然河鹿莊', loc: '美山', price: 'NT$ 5,234', code: '5412345678', tel: '+81-771-77-0014' },
-            { date: '04/09', name: 'le Lac HOTEL', loc: '大津/石山', price: 'NT$ 2,545', code: '615854647 / 3185' },
-            { date: '04/10', name: 'R Hotel Kansai Airport', loc: '泉佐野', price: 'NT$ 1,902', code: '5411692943' }
-        ];
-
-        const EMERGENCY_INFO = [
-            { title: "日本警察 (110)", tel: "110", sub: "緊急求助" },
-            { title: "消防・救護 (119)", tel: "119", sub: "醫療與火警" },
-            { title: "駐日代表處", tel: "+81-3-3280-7811", sub: "外交部 24H" }
-        ];
-
-        // 安全 SVG 圖示
-        const Icons = {
-            Map: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>,
-            Info: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>,
-            Receipt: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"></path><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 17.5v-11"></path></svg>,
-            Checklist: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>,
-            Trash: () => <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-        };
-
-        function App() {
-            const [activeTab, setActiveTab] = useState('info'); // 預設打開資訊頁
-            const [selectedDay, setSelectedDay] = useState(1);
+        // 🛡️ 加上防護罩：把所有程式碼包起來，避免跟瀏覽器功能撞名
+        (() => {
+            const { useState, useMemo, useEffect, useRef } = React;
             
-            // LocalStorage
-            const [expenses, setExpenses] = useState(() => { const saved = localStorage.getItem('kansai_expenses'); return saved ? JSON.parse(saved) : []; });
-            const [checklist, setChecklist] = useState(() => { const saved = localStorage.getItem('kansai_checklist'); return saved ? JSON.parse(saved) : INITIAL_CHECKLIST; });
-            useEffect(() => { localStorage.setItem('kansai_expenses', JSON.stringify(expenses)); }, [expenses]);
-            useEffect(() => { localStorage.setItem('kansai_checklist', JSON.stringify(checklist)); }, [checklist]);
+            // 🛡️ 防彈級圖示產生器：就算網路慢沒抓到圖案，也絕對不白屏
+            const createIcon = (name) => (props) => {
+                const Comp = window.lucideReact ? (window.lucideReact[name] || window.lucideReact[name.replace('Icon', '')]) : null;
+                return Comp ? React.createElement(Comp, props) : <span style={{width: props.size||24, height: props.size||24}} className={`inline-block ${props.className||''}`} />;
+            };
 
-            const currentDayData = ITINERARY_DATA.find(d => d.day === selectedDay);
+            // 匯入您使用的所有圖示 (並把 Map 改名為 MapIcon 避免撞車)
+            const MapIcon = createIcon('Map');
+            const Info = createIcon('Info');
+            const Receipt = createIcon('Receipt');
+            const ListChecks = createIcon('ListChecks');
+            const Train = createIcon('Train');
+            const Plane = createIcon('Plane');
+            const Hotel = createIcon('Hotel');
+            const MapPin = createIcon('MapPin');
+            const Clock = createIcon('Clock');
+            const Sun = createIcon('Sun');
+            const Cloud = createIcon('Cloud');
+            const Plus = createIcon('Plus');
+            const Trash2 = createIcon('Trash2');
+            const ExternalLink = createIcon('ExternalLink');
+            const ChevronDown = createIcon('ChevronDown');
+            const ChevronUp = createIcon('ChevronUp');
+            const CheckCircle2 = createIcon('CheckCircle2');
+            const Circle = createIcon('Circle');
+            const RefreshCw = createIcon('RefreshCw');
+            const QrCode = createIcon('QrCode');
+            const X = createIcon('X');
+            const ImagePlus = createIcon('ImagePlus');
+            const Maximize2 = createIcon('Maximize2');
+            const AlertCircle = createIcon('AlertCircle');
+            const Phone = createIcon('Phone');
+            const Link2 = createIcon('Link2');
+            const Monitor = createIcon('Monitor');
+            const Smartphone = createIcon('Smartphone');
+            const Briefcase = createIcon('Briefcase');
+            const CreditCard = createIcon('CreditCard');
+            const TrendingUp = createIcon('TrendingUp');
+            const CalendarDays = createIcon('CalendarDays');
+            const Luggage = createIcon('Luggage');
+            const Check = createIcon('Check');
+            const ImageIcon = createIcon('ImageIcon');
+            const Flower2 = createIcon('Flower2');
+            const Zap = createIcon('Zap');
+            const Bus = createIcon('Bus');
+            const Footprints = createIcon('Footprints');
+            const ClipboardCheck = createIcon('ClipboardCheck');
+            const ArrowRightLeft = createIcon('ArrowRightLeft');
+            const Ticket = createIcon('Ticket');
 
-            return (
-                <div className="max-w-md mx-auto min-h-screen bg-[#F5F5F3] pb-24 shadow-2xl relative text-stone-800">
-                    <div className="bg-white p-6 sticky top-0 z-50 border-b flex justify-between items-center shadow-sm">
-                        <div>
-                            <h1 className="text-xl font-black">2026 關西深度之旅</h1>
-                            <p className="text-[10px] text-[#557A66] font-bold tracking-widest">2026.04.06 - 04.11</p>
-                        </div>
-                    </div>
+            // --- 常數定義 ---
+            const SUPABASE_URL = 'https://fcoldniwdpoercogqrrq.supabase.co';
+            const SUPABASE_ANON_KEY = 'sb_publishable_pfFfXYbrqX3RQzf9dhPFdQ_rvIIksZn'; // 🔑 已幫您補上漏掉的 n
 
-                    <main className="p-4">
-                        {/* 📍 行程分頁 (完整版) */}
-                        {activeTab === 'itinerary' && (
-                            <div className="animate-in fade-in duration-300">
-                                <div className="flex space-x-2 overflow-x-auto no-scrollbar mb-6 pb-2">
-                                    {[1,2,3,4,5,6].map(d => (
-                                        <button key={d} onClick={() => setSelectedDay(d)} className={`px-5 py-2 rounded-full text-sm font-black shrink-0 transition-all shadow-sm ${selectedDay === d ? 'bg-stone-800 text-white translate-y-[-2px]' : 'bg-white text-stone-400 border border-stone-100'}`}>
-                                            Day {d}
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="mb-4 p-4 bg-sky-50 rounded-2xl flex items-center shadow-inner">
-                                    <span className="text-2xl mr-3">🌤️</span>
-                                    <div>
-                                        <div className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{currentDayData.location}</div>
-                                        <div className="text-sm font-black text-stone-700">14°C - 20°C</div>
-                                    </div>
-                                </div>
-                                <div className="relative pl-6 border-l-2 border-stone-200 ml-2">
-                                    {currentDayData.events.map((ev, idx) => (
-                                        <div key={idx} className="mb-8 relative bg-white p-5 rounded-2xl shadow-sm border border-stone-100">
-                                            <div className="absolute -left-[37px] top-4 w-4 h-4 rounded-full bg-white border-4 border-[#557A66]"></div>
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div className="flex items-center space-x-2">
-                                                    <span className="text-xl">{ev.type}</span>
-                                                    <h3 className="font-black text-[15px]">{ev.title}</h3>
-                                                </div>
-                                                <span className="text-xs font-black text-stone-400 bg-stone-50 px-2 py-1 rounded">{ev.time}</span>
-                                            </div>
-                                            <p className="text-sm text-stone-500 font-bold ml-7">{ev.desc}</p>
-                                            {ev.tag && <span className="inline-block mt-2 ml-7 text-[10px] bg-rose-50 text-rose-500 px-2 py-1 rounded-md border border-rose-100 font-bold">{ev.tag}</span>}
-                                            {ev.ticket && (
-                                                <div className="mt-4 p-3 bg-rose-50 rounded-xl ml-7">
-                                                    <a href={ev.ticket} target="_blank" className="flex items-center justify-center space-x-2 py-2 bg-rose-600 text-white rounded-lg font-black text-sm active:scale-95 shadow-md">🎫 查看當天電子票</a>
-                                                    <p className="text-[9px] text-rose-400 font-bold mt-2 text-center">※ 連結內容將於搭乘當天開放</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+            // 以下是您 100% 原始的資料與程式碼
+            const INITIAL_TRIP_DATA = {
+              title: "2026 關西深度之旅",
+              startDate: "2026-04-06",
+              endDate: "2026-04-11",
+              itinerary: [
+                {
+                  day: 1, date: "04/06", title: "花蓮 ➔ 台北 ➔ 關西機場", location: "泉佐野",
+                  events: [
+                    { id: 101, time: "12:18", type: "transport", title: "花蓮火車站", description: "台鐵 417 次 (EMU3000)" },
+                    { id: 102, time: "14:31", type: "info", title: "抵達台北車站", description: "步行轉乘機場捷運" },
+                    { id: 103, time: "14:45", type: "transport", title: "台北車站 (A1)", description: "機捷直達車 ➔ 機場 T1" },
+                    { id: 104, time: "18:15", type: "flight", title: "✈️ 樂桃 MM028 起飛", description: "桃園機場 T1" },
+                    { id: 105, time: "22:00", type: "info", title: "抵達關西 T2", description: "入境後搭接駁車至 T1" },
+                    { id: 106, time: "23:00", type: "task", title: "領取 JR PASS & 指定席券", description: "尋找綠色售票機 (地球儀標示)", tag: "#重要任務" },
+                    { id: 107, time: "23:29", type: "transport", title: "關西機場站", description: "南海電鐵 ➔ 臨空城" },
+                    { id: 108, time: "23:50", type: "accommodation", title: "入住 華盛頓飯店", description: "臨空城站步行3分" }
+                  ]
+                },
+                {
+                  day: 2, date: "04/07", title: "直奔天橋立 & 伊根", location: "伊根",
+                  events: [
+                    { id: 201, time: "05:40", type: "task", title: "飯店退房", description: "步行前往臨空城站" },
+                    { id: 202, time: "05:55", type: "transport", title: "臨空城站 (JR)", description: "搭乘至關西機場 (1站)" },
+                    { id: 203, time: "06:31", type: "transport", title: "特急 HARUKA 2號", description: "關西機場 ➔ 京都 (月台 4)", tag: "#指定席券①" },
+                    { id: 204, time: "07:54", type: "task", title: "京都站寄存大行李", description: "B1F Crosta 或大型置物櫃", tag: "#關鍵任務" },
+                    { id: 205, time: "08:38", type: "transport", title: "特急 Hashidate 1號", description: "京都 (31號月台) ➔ 天橋立", tag: "#指定席券②" },
+                    { id: 206, time: "10:45", type: "info", title: "抵達天橋立", description: "開始天橋立精華遊" },
+                    { id: 207, time: "13:46", type: "transport", title: "丹海巴士 (伊根線)", description: "天橋立站前上車" },
+                    { id: 208, time: "14:41", type: "info", title: "抵達伊根", description: "步行至舟屋" },
+                    { id: 209, time: "15:00", type: "accommodation", title: "入住 伊根の舟屋 雅 別邸", description: "享受舟屋時光" }
+                  ]
+                },
+                {
+                  day: 3, date: "04/08", title: "天橋立 ➔ 美山", location: "美山",
+                  events: [
+                    { id: 301, time: "08:30", type: "transport", title: "丹海巴士", description: "離開伊根 ➔ 天橋立站" },
+                    { id: 302, time: "09:50", type: "transport", title: "特急 Hashidate 2號", description: "天橋立 ➔ 園部 (直達免轉車)", tag: "#指定席券③" },
+                    { id: 303, time: "11:37", type: "info", title: "抵達園部站", description: "站內換月台 (9分鐘緩衝)" },
+                    { id: 304, time: "11:46", type: "transport", title: "JR 山陰本線", description: "園部 ➔ 日吉 (普通車)" },
+                    { id: 305, time: "11:54", type: "info", title: "抵達日吉站", description: "出站等候公車 (16分鐘緩衝)" },
+                    { id: 306, time: "12:10", type: "transport", title: "南丹市營巴士", description: "日吉站前上車 (投幣 ¥600)" },
+                    { id: 307, time: "13:06", type: "info", title: "抵達美山・知見口", description: "步行至飯店" },
+                    { id: 308, time: "15:00", type: "accommodation", title: "入住 美山河鹿莊", description: "含一泊二食" }
+                  ]
+                },
+                {
+                  day: 4, date: "04/09", title: "美山 ➔ 嵐山 ➔ 大津", location: "大津",
+                  events: [
+                    { id: 401, time: "10:30", type: "task", title: "準備離開美山", description: "前往「知見口」或「北」站牌" },
+                    { id: 402, time: "10:48", type: "transport", title: "南丹市營巴士", description: "知見口 (10:48) / 北 (10:51)" },
+                    { id: 403, time: "11:47", type: "info", title: "抵達日吉站", description: "準備轉乘 JR" },
+                    { id: 404, time: "12:04", type: "transport", title: "JR 普通車", description: "日吉 ➔ 園部" },
+                    { id: 405, time: "12:16", type: "transport", title: "JR 普通車 (往京都)", description: "園部 ➜ 馬堀 (12:38 抵達)", tag: "#關鍵轉乘" },
+                    { id: 406, time: "12:45", type: "walk", title: "步行至小火車龜岡站", description: "田野小路 10 分鐘" },
+                    { id: 407, time: "13:30", type: "transport", title: "🚂 嵐山小火車 (嵯峨野觀光鐵道)", description: "小火車龜岡站 ➔ 小火車嵐山站", tag: "#已預約指定席", ticket_url: "https://linkt.to/Ucou23Mw", memo: "需出示當天顯示之連結內容進站" },
+                    { id: 408, time: "17:10", type: "transport", title: "JR 嵯峨野線", description: "嵯峨嵐山 ➔ 京都" },
+                    { id: 409, time: "19:40", type: "task", title: "領回大行李", description: "京都站 B1 寄存處", tag: "#關鍵任務" },
+                    { id: 410, time: "20:00", type: "transport", title: "JR 琵琶湖線", description: "京都 ➔ 大津 (10 分鐘)" },
+                    { id: 411, time: "20:20", type: "accommodation", title: "入住 Super Hotel 大津", description: "車站旁" }
+                  ]
+                },
+                {
+                  day: 5, date: "04/10", title: "近江八幡 ➔ 關西機場", location: "泉佐野",
+                  events: [
+                    { id: 501, time: "08:30", type: "task", title: "飯店退房", description: "帶著行李出發" },
+                    { id: 502, time: "08:45", type: "transport", title: "JR 琵琶湖線", description: "大津 ➜ 近江八幡 (09:15 抵)" },
+                    { id: 503, time: "09:20", type: "task", title: "近江八幡寄存行李", description: "JR 車站置物櫃", tag: "#關鍵任務" },
+                    { id: 504, time: "09:30", type: "transport", title: "近江鐵道巴士", description: "前往 La Collina" },
+                    { id: 505, time: "15:00", type: "task", title: "領回行李", description: "回到近江八幡站" },
+                    { id: 506, time: "15:25", type: "transport", title: "JR 新快速", description: "近江八幡 ➜ 京都 (16:00 抵)" },
+                    { id: 507, time: "16:30", type: "transport", title: "特急 HARUKA 43號", description: "京都 ➜ 關西機場", tag: "#指定席券④" },
+                    { id: 508, time: "17:51", type: "transport", title: "南海電鐵/JR", description: "關西機場 ➜ 臨空城" },
+                    { id: 509, time: "20:30", type: "accommodation", title: "入住 R Hotel 泉佐野", description: "整理行李" }
+                  ]
+                },
+                {
+                  day: 6, date: "04/11", title: "早班機回家", location: "花蓮",
+                  events: [
+                    { id: 601, time: "05:25", type: "walk", title: "步行前往車站", description: "泉佐野站" },
+                    { id: 602, time: "05:40", type: "transport", title: "南海電鐵", description: "泉佐野 ➜ 關西機場 (T1)" },
+                    { id: 603, time: "06:00", type: "transport", title: "接駁巴士", description: "T1 ➔ T2" },
+                    { id: 604, time: "07:50", type: "flight", title: "✈️ 樂桃 MM023 起飛", description: "關西 T2 ➜ 桃園 T1" },
+                    { id: 605, time: "14:58", type: "info", title: "抵達花蓮", description: "旅途圓滿結束" }
+                  ]
+                }
+              ],
+              vouchers: []
+            };
 
-                        {/* ℹ️ 資訊分頁 (完整版：含所有分類) */}
-                        {activeTab === 'info' && (
-                            <div className="space-y-8 animate-in fade-in duration-300">
-                                {/* 小火車獨立按鈕 */}
-                                <a href="https://linkt.to/Ucou23Mw" target="_blank" className="flex items-center justify-between p-5 bg-rose-600 text-white rounded-[2rem] shadow-xl active:scale-95 transition-all">
-                                    <div>
-                                        <div className="text-xs font-bold opacity-80 uppercase tracking-widest">Limited Access</div>
-                                        <div className="text-lg font-black mt-1">🎫 嵐山小火車電子票</div>
-                                    </div>
-                                    <span className="text-2xl opacity-50">↗</span>
-                                </a>
+            const INITIAL_CHECKLIST = [
+              { id: 1, group: '證件類', text: '護照 (效期6個月以上)', checked: false },
+              { id: 2, group: '證件類', text: 'JR PASS 預約 QR Code', checked: false },
+              { id: 3, group: '證件類', text: '機票電子憑證', checked: false },
+              { id: 4, group: '證件類', text: '住宿確認單', checked: false },
+              { id: 5, group: '票券類', text: 'JR 關西廣域鐵路周遊券', checked: false },
+              { id: 6, group: '票券類', text: '樂桃航空機票', checked: false },
+              { id: 7, group: '金錢相關', text: '日幣現金 7~8 萬', checked: false },
+              { id: 8, group: '金錢相關', text: '信用卡 2 張', checked: false },
+              { id: 9, group: '行李物品', text: '29吋大行李箱', checked: false },
+            ];
 
-                                {/* 航班 */}
-                                <section>
-                                    <h2 className="font-black text-lg mb-3">✈️ 航班資訊 (EAVV8W)</h2>
-                                    {FLIGHT_INFO.map((f, i) => (
-                                        <div key={i} className="bg-white p-4 rounded-2xl border border-stone-100 shadow-sm mb-3">
-                                            <div className="text-xs font-black text-[#557A66] bg-[#557A66]/10 inline-block px-2 py-1 rounded mb-2">{f.date}</div>
-                                            <div className="font-black text-lg">{f.route}</div>
-                                            <div className="text-sm text-stone-500 font-bold my-1">{f.code} | {f.time}</div>
-                                            <div className="text-[11px] text-stone-400">{f.note}</div>
-                                        </div>
-                                    ))}
-                                </section>
+            const EXCHANGE_RATE = 0.21; 
 
-                                {/* 住宿 */}
-                                <section>
-                                    <h2 className="font-black text-lg mb-3">🏨 住宿確認</h2>
-                                    {HOTEL_INFO.map((h, i) => (
-                                        <div key={i} className="bg-white p-4 rounded-2xl border border-stone-100 shadow-sm mb-3">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <div className="text-[10px] font-black text-stone-400 uppercase">{h.date} · {h.loc}</div>
-                                                <div className="text-xs font-black text-[#557A66]">{h.price}</div>
-                                            </div>
-                                            <h3 className="font-black text-base">{h.name}</h3>
-                                            <div className="text-xs mt-2 bg-stone-50 inline-block px-2 py-1 rounded text-stone-600">確認碼: <b>{h.code}</b></div>
-                                        </div>
-                                    ))}
-                                </section>
-
-                                {/* 連結 */}
-                                <section>
-                                    <h2 className="font-black text-lg mb-3">🔗 實用連結</h2>
-                                    <div className="space-y-2 mb-4">
-                                        <a href="https://weathernews.jp/sakura/area/kinki/" target="_blank" className="block p-4 bg-pink-50 rounded-xl border border-pink-100 text-pink-600 font-black shadow-sm">🌸 櫻花開花即時報</a>
-                                        <a href="https://platinumaps.jp/d/kyoto-station-smart-navi?culture=zh-tw&gm=187&floor=1F" target="_blank" className="block p-4 bg-blue-50 rounded-xl border border-blue-100 text-blue-600 font-black shadow-sm">🛅 京都站行李櫃空位</a>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <a href="https://www.westjr.co.jp/global/tc/timetable/pdf/ubn_tc.pdf" target="_blank" className="bg-white p-3 rounded-xl border text-center font-bold text-xs shadow-sm">JR West 路線圖</a>
-                                        <a href="https://www.nankai.co.jp/tc_railway/traffic/railmap.html" target="_blank" className="bg-white p-3 rounded-xl border text-center font-bold text-xs shadow-sm">南海電鐵路線圖</a>
-                                        <a href="https://www.city.nantan.kyoto.jp/www/life/116/001/000/90801/1013457_1_501_50.pdf" target="_blank" className="bg-white p-3 rounded-xl border text-center font-bold text-xs shadow-sm">南丹市營巴士</a>
-                                        <a href="https://www.tankai.jp/tw/bus/tankai-bus/" target="_blank" className="bg-white p-3 rounded-xl border text-center font-bold text-xs shadow-sm">丹海巴士時刻表</a>
-                                    </div>
-                                </section>
-
-                                {/* 緊急 */}
-                                <section>
-                                    <h2 className="font-black text-lg mb-3">📞 緊急聯絡</h2>
-                                    {EMERGENCY_INFO.map((c, i) => (
-                                        <a key={i} href={`tel:${c.tel}`} className="flex justify-between items-center p-4 bg-rose-50 rounded-xl border border-rose-100 mb-2 active:bg-rose-100">
-                                            <div><div className="text-sm font-black text-rose-700">{c.title}</div></div>
-                                            <span className="text-xl">📞</span>
-                                        </a>
-                                    ))}
-                                </section>
-                            </div>
-                        )}
-
-                        {/* 💰 記帳分頁 */}
-                        {activeTab === 'expenses' && (
-                            <ExpenseTab expenses={expenses} setExpenses={setExpenses} />
-                        )}
-
-                        {/* ✅ 清單分頁 */}
-                        {activeTab === 'checklist' && (
-                            <ChecklistTab checklist={checklist} setChecklist={setChecklist} />
-                        )}
-                    </main>
-
-                    {/* 底部導航 */}
-                    <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t px-6 py-4 flex justify-between items-center shadow-inner z-50">
-                        <TabBtn id="info" icon={Icons.Info} label="資訊" active={activeTab} set={setActiveTab} />
-                        <TabBtn id="itinerary" icon={Icons.Map} label="行程" active={activeTab} set={setActiveTab} />
-                        <TabBtn id="expenses" icon={Icons.Receipt} label="記帳" active={activeTab} set={setActiveTab} />
-                        <TabBtn id="checklist" icon={Icons.Checklist} label="清單" active={activeTab} set={setActiveTab} />
-                    </div>
-                </div>
+            // --- 子組件 ---
+            const Tag = ({ children, colorClass }) => (
+              <span className={`text-[10px] px-2 py-0.5 rounded-md border font-black uppercase tracking-wider ${colorClass}`}>{children}</span>
             );
-        }
 
-        function ExpenseTab({ expenses, setExpenses }) {
-            const [amount, setAmount] = useState('');
-            const [category, setCategory] = useState('飲食');
-            const [note, setNote] = useState('');
+            const TimelineNode = ({ event, isLast }) => {
+              const isMain = ['flight', 'accommodation'].includes(event.type) || 
+                             (event.type === 'transport' && (event.title.includes('特急') || event.title.includes('🚂') || event.title.includes('MM')));
+              
+              const getIcon = () => {
+                switch (event.type) {
+                  case 'transport': return <Train size={isMain ? 20 : 16} />;
+                  case 'flight': return <Plane size={20} />;
+                  case 'accommodation': return <Hotel size={20} />;
+                  case 'task': return <ClipboardCheck size={16} />;
+                  case 'walk': return <Footprints size={16} />;
+                  case 'info': return <Info size={16} />;
+                  default: return <Circle size={16} />;
+                }
+              };
 
-            const handleAdd = (e) => {
+              const getTagColor = (tag) => {
+                if (tag.includes('重要') || tag.includes('關鍵') || tag.includes('任務')) return 'bg-rose-50 text-rose-600 border-rose-100';
+                if (tag.includes('券') || tag.includes('預約') || tag.includes('轉乘')) return 'bg-amber-50 text-amber-600 border-amber-100';
+                return 'bg-[#557A66]/5 text-[#557A66] border-[#557A66]/10';
+              };
+
+              return (
+                <div className="relative flex group">
+                  <div className="flex flex-col items-center mr-4 w-14 flex-shrink-0">
+                    <span className={`text-[10px] font-black tracking-tighter mb-1 ${isMain ? 'text-stone-800' : 'text-stone-400'}`}>
+                      {event.time}
+                    </span>
+                    <div className={`w-0.5 grow relative ${isLast ? 'bg-transparent' : 'bg-stone-200'}`}>
+                      <div className={`absolute top-0 left-1/2 -translate-x-1/2 rounded-full z-10 shadow-sm border-2 transition-all group-active:scale-110 ${
+                        isMain 
+                          ? 'w-7 h-7 -mt-1 -ml-3.5 bg-[#557A66] border-white text-white flex items-center justify-center' 
+                          : 'w-3 h-3 mt-1 -ml-1.5 bg-white border-stone-300'
+                      }`}>
+                        {isMain && getIcon()}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={`flex-1 pb-10 ${isMain ? 'pt-0' : 'pt-0.5'}`}>
+                    <div className={`rounded-2xl transition-all ${
+                      isMain ? 'bg-white p-5 shadow-md border border-stone-100' : 'bg-stone-50/50 px-3 py-2 border border-dashed border-stone-200'
+                    }`}>
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex items-center space-x-2">
+                          {!isMain && <span className="text-stone-400">{getIcon()}</span>}
+                          <h3 className={`font-black ${isMain ? 'text-lg text-stone-800' : 'text-[14px] text-stone-600'}`}>{event.title}</h3>
+                        </div>
+                        {event.tag && <Tag colorClass={getTagColor(event.tag)}>{event.tag}</Tag>}
+                      </div>
+                      <p className={`font-medium leading-relaxed ${isMain ? 'text-stone-500 text-sm mt-1' : 'text-stone-400 text-xs'}`}>{event.description}</p>
+
+                      {event.ticket_url && (
+                        <div className="mt-4 p-3 bg-rose-50 rounded-2xl border border-rose-100">
+                           <a href={event.ticket_url} target="_blank" rel="noreferrer" className="flex items-center justify-center space-x-2 w-full py-3 bg-rose-600 text-white rounded-xl font-black shadow-lg shadow-rose-200 active:scale-95 transition-all">
+                             <Ticket size={18} /><span>🎫 查看當天票券</span>
+                           </a>
+                           <p className="text-[9px] text-rose-400 font-bold mt-2 text-center">※ 此連結內容將於搭乘當天開放顯示</p>
+                        </div>
+                      )}
+
+                      {/* 🛠️ 已修復您原本的 Google Map 連結亂碼問題 */}
+                      {isMain && !event.ticket_url && (
+                        <div className="mt-4 flex space-x-2">
+                          <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.title)}`} target="_blank" rel="noreferrer" className="flex items-center text-[10px] font-black text-[#557A66] bg-[#557A66]/5 px-3 py-2 rounded-xl active:scale-95 transition-transform">
+                            <MapPin size={12} className="mr-1.5" /> 導航
+                          </a>
+                          <a href={`https://www.google.com/search?q=${encodeURIComponent(event.title + ' 時刻表')}`} target="_blank" rel="noreferrer" className="flex items-center text-[10px] font-black text-stone-400 bg-stone-100 px-3 py-2 rounded-xl active:scale-95 transition-transform">
+                            <Clock size={12} className="mr-1.5" /> 查詢
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {!isLast && event.type === 'walk' && (
+                      <div className="ml-2 mt-4 flex items-center space-x-2 text-[9px] font-black text-stone-300 uppercase tracking-widest">
+                        <Footprints size={10} /><span>Walking Link</span>
+                        <div className="grow border-t border-dashed border-stone-200"></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            };
+
+            const ItineraryTab = ({ tripData, syncData, isSyncing, lastSynced }) => {
+              const [selectedDay, setSelectedDay] = useState(1);
+              const currentDayData = tripData.itinerary.find(d => d.day === selectedDay);
+
+              return (
+                <div className="flex-1 overflow-y-auto bg-[#F5F5F3] pb-24 no-scrollbar">
+                  <div className="sticky top-0 z-20 bg-[#F5F5F3] pt-6 pb-2 px-4 shadow-sm backdrop-blur-md bg-opacity-90">
+                    <div className="flex justify-between items-center mb-4">
+                      <h1 className="text-xl font-black text-stone-800 tracking-tight">{tripData.title}</h1>
+                      <div className="flex items-center space-x-2">
+                         <div className="text-[9px] text-right">
+                           <div className="font-black text-stone-300 uppercase leading-none">Cloud Sync</div>
+                           <div className="text-[#557A66] font-bold">{lastSynced || 'Local Mode'}</div>
+                         </div>
+                         <button onClick={syncData} disabled={isSyncing} className="p-2.5 bg-white rounded-full shadow-md border border-stone-100 active:scale-90 transition-transform">
+                           <RefreshCw size={18} className={`${isSyncing ? 'animate-spin' : ''} text-[#557A66]`}/>
+                         </button>
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-3 overflow-x-auto no-scrollbar pb-3">
+                      {tripData.itinerary.map((d) => (
+                        <button key={d.day} onClick={() => setSelectedDay(d.day)} className={`flex-shrink-0 px-6 py-3 rounded-2xl text-sm font-black transition-all ${selectedDay === d.day ? 'bg-stone-800 text-white shadow-xl translate-y-[-2px]' : 'bg-white text-stone-400 border border-stone-100'}`}>
+                          Day {d.day} <span className="text-[10px] opacity-50 ml-1">{d.date}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="mt-1 flex items-center justify-between bg-white rounded-[1.25rem] p-4 shadow-sm border border-stone-50">
+                      <div className="flex items-center space-x-4">
+                        <div className="p-2.5 bg-sky-50 rounded-2xl text-sky-500 shadow-inner"><Cloud size={20}/></div>
+                        <div>
+                          <div className="text-[10px] font-black text-stone-400 uppercase tracking-[0.15em]">{currentDayData.location}</div>
+                          <div className="text-[15px] font-black text-stone-700">14°C - 20°C <span className="mx-1 text-stone-300">|</span> 多雲轉晴</div>
+                        </div>
+                      </div>
+                      <Flower2 size={24} className="text-rose-100" />
+                    </div>
+                  </div>
+
+                  <div className="px-6 py-8">
+                    <div className="flex items-center space-x-4 mb-10 border-b border-stone-200 pb-4">
+                      <div className="w-12 h-12 rounded-2xl bg-stone-800 text-white flex flex-col items-center justify-center font-black shadow-lg">
+                        <span className="text-[9px] uppercase opacity-50">Day</span>
+                        <span className="text-xl leading-none">0{selectedDay}</span>
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-black text-stone-800 leading-none mb-1">{currentDayData.title}</h2>
+                        <p className="text-xs font-bold text-stone-400 uppercase tracking-widest">Date: {currentDayData.date} / 2026</p>
+                      </div>
+                    </div>
+
+                    <div className="relative">
+                      {currentDayData.events.map((event, idx) => (
+                        <TimelineNode key={event.id} event={event} isLast={idx === currentDayData.events.length - 1} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            };
+
+            const InfoTab = ({ tripData, updateVouchers }) => {
+              const [activeSub, setActiveSub] = useState('vouchers'); 
+              const [isModalOpen, setIsModalOpen] = useState(false);
+              const [selectedVoucher, setSelectedVoucher] = useState(null);
+              const [newVoucher, setNewVoucher] = useState({ name: '', image: '', type: 'file' });
+              const fileInputRef = useRef(null);
+
+              const monitoringTools = [
+                { title: "🌸 櫻花即時開花情報", url: "https://weathernews.jp/sakura/area/kinki/", bg: "#FCE4EC", color: "#C2185B" },
+                { title: "🛅 京都車站行李櫃空位", url: "https://platinumaps.jp/d/kyoto-station-smart-navi?culture=zh-tw&gm=187&floor=1F", bg: "#E3F2FD", color: "#1976D2" },
+                { title: "🎒 ecbo cloak 行李寄存", url: "https://cloak.ecbo.io/zh-tw", bg: "#F5F5F5", color: "#616161" },
+              ];
+
+              const officialLinks = [
+                { title: "JR West 路線圖", icon: <Train size={18}/>, url: "https://www.westjr.co.jp/global/tc/timetable/pdf/ubn_tc.pdf" },
+                { title: "南海電鐵路線圖", icon: <MapPin size={18}/>, url: "https://www.nankai.co.jp/tc_railway/traffic/railmap.html" },
+                { title: "丹海巴士時刻表", icon: <Bus size={18}/>, url: "https://www.tankai.jp/tw/bus/tankai-bus/" },
+                { title: "HARUKA 時刻表", icon: <Zap size={18}/>, url: "https://www.westjr.co.jp/global/tc/timetable/" },
+              ];
+
+              const flights = [
+                { date: '04/06 (一)', route: '台北 TPE ➔ 關西 KIX', time: '18:15 - 22:00', code: 'Peach MM028', terminal: 'T1 ➔ T2', note: '機票 $6,810/人 | 樂桃 EAVV8W' },
+                { date: '04/11 (六)', route: '關西 KIX ➔ 台北 TPE', time: '07:50 - 09:55', code: 'Peach MM023', terminal: 'T2 ➔ T1', note: '兩人共 20kg 託運 | 手提 7kg/人' }
+              ];
+
+              const hotels = [
+                { date: '04/06', name: 'City Hotel Airport in Prince', loc: '泉佐野', price: 'NT$ 1,903', code: '5645140186', tel: '+81-72-462-0909' },
+                { date: '04/07', name: '伊根舟屋美雅Villa', loc: '伊根', price: 'NT$ 2,743', code: '1318504025' },
+                { date: '04/08', name: '美山自然河鹿莊', loc: '美山', price: 'NT$ 5,234', code: '5412345678', tel: '+81-771-77-0014', tag: '含早晚餐' },
+                { date: '04/09', name: 'le Lac HOTEL', loc: '大津/石山', price: 'NT$ 2,545', code: '615854647 / 3185' },
+                { date: '04/10', name: 'R Hotel Kansai Airport', loc: '泉佐野', price: 'NT$ 1,902', code: '5411692943' },
+              ];
+
+              const handleFileChange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => setNewVoucher(prev => ({ ...prev, image: reader.result }));
+                  reader.readAsDataURL(file);
+                }
+              };
+
+              const handleAddVoucher = () => {
+                if (!newVoucher.name || !newVoucher.image) return;
+                updateVouchers([...(tripData.vouchers || []), { id: Date.now(), ...newVoucher }]);
+                setIsModalOpen(false);
+                setNewVoucher({ name: '', image: '', type: 'file' });
+              };
+
+              return (
+                <div className="flex-1 overflow-y-auto bg-[#F5F5F3] p-5 pb-24 no-scrollbar">
+                  <h1 className="text-xl font-black text-stone-800 mb-6 font-noto">資訊、憑證與連結</h1>
+
+                  <div className="flex space-x-2 mb-6 overflow-x-auto no-scrollbar">
+                    {[
+                      { id: 'vouchers', label: '憑證 QR', icon: <QrCode size={14}/> },
+                      { id: 'flight', label: '航班', icon: <Plane size={14}/> },
+                      { id: 'hotel', label: '住宿', icon: <Hotel size={14}/> },
+                      { id: 'links', label: '常用連結', icon: <Link2 size={14}/> },
+                      { id: 'emergency', label: '緊急', icon: <Phone size={14}/> },
+                    ].map(s => (
+                      <button key={s.id} onClick={() => setActiveSub(s.id)} className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap ${activeSub === s.id ? 'bg-stone-800 text-white shadow-md' : 'bg-white text-stone-400 border border-stone-100'}`}>
+                        {s.icon} <span>{s.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {activeSub === 'vouchers' && (
+                    <div className="space-y-4 animate-in fade-in duration-300">
+                      <a href="https://linkt.to/Ucou23Mw" target="_blank" rel="noreferrer" className="flex items-center justify-between p-5 bg-rose-600 text-white rounded-[2rem] shadow-xl shadow-rose-200 active:scale-95 transition-all group">
+                        <div className="flex items-center space-x-4">
+                           <div className="p-3 bg-white/20 rounded-2xl"><Ticket size={24} /></div>
+                           <div>
+                             <div className="text-xs font-bold opacity-60 uppercase tracking-widest">Limited Access</div>
+                             <div className="text-lg font-black">嵐山小火車電子票</div>
+                           </div>
+                        </div>
+                        <ExternalLink size={20} className="opacity-40" />
+                      </a>
+
+                      <button onClick={() => setIsModalOpen(true)} className="w-full flex items-center justify-center space-x-2 py-4 border-2 border-dashed border-stone-300 rounded-[1.5rem] text-stone-400 hover:text-[#557A66] transition-all bg-white/50"><Plus size={20} /><span className="text-sm font-black">新增憑證圖片 / QR Code</span></button>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        {tripData.vouchers?.map(v => (
+                          <div key={v.id} onClick={() => setSelectedVoucher(v)} className="bg-white p-2 rounded-2xl border shadow-sm cursor-pointer active:scale-95 transition-transform overflow-hidden relative">
+                             <img src={v.image} className="w-full h-full object-cover rounded-xl" alt={v.name} />
+                             <div className="absolute bottom-2 left-2 right-2 bg-white/80 backdrop-blur-sm p-1 rounded text-[8px] font-black truncate">{v.name}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeSub === 'flight' && (
+                    <div className="space-y-4">
+                      <div className="bg-stone-800 text-white p-6 rounded-[2rem] shadow-xl relative overflow-hidden">
+                         <div className="relative z-10">
+                           <div className="text-[10px] font-black opacity-50 uppercase tracking-[0.2em] mb-1">Booking Reference</div>
+                           <div className="text-3xl font-black tracking-widest mb-4">EAVV8W</div>
+                           <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-4">
+                              <div><div className="text-[10px] font-bold opacity-50 uppercase">託運</div><div className="text-sm font-black">20KG 共用</div></div>
+                              <div><div className="text-[10px] font-bold opacity-50 uppercase">手提</div><div className="text-sm font-black">7KG / 人</div></div>
+                           </div>
+                         </div>
+                         <Plane className="absolute -right-8 -bottom-8 opacity-10 rotate-[320deg]" size={180} />
+                      </div>
+                      {flights.map((f, i) => (
+                        <div key={i} className="bg-white p-5 rounded-[1.5rem] border border-stone-100 shadow-sm">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="text-xs font-black text-[#557A66] bg-[#557A66]/5 px-2 py-1 rounded-md">{f.date}</div>
+                            <div className="text-xs font-mono font-bold text-stone-400">{f.code}</div>
+                          </div>
+                          <div className="text-lg font-black text-stone-800 mb-1">{f.route}</div>
+                          <div className="flex items-center text-sm font-bold text-stone-500 mb-3"><Clock size={14} className="mr-2"/> {f.time} <span className="mx-3 opacity-30">|</span> {f.terminal}</div>
+                          <div className="text-[11px] font-bold text-stone-400 flex items-center italic"><AlertCircle size={12} className="mr-1.5"/> {f.note}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {activeSub === 'hotel' && (
+                    <div className="space-y-4">
+                      {hotels.map((h, i) => (
+                        <div key={i} className="bg-white p-5 rounded-[1.5rem] border border-stone-100 shadow-sm relative overflow-hidden active:bg-stone-50 transition-colors">
+                          <div className="flex justify-between items-center mb-2">
+                            <div className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{h.date} · {h.loc}</div>
+                            <div className="text-sm font-black text-[#557A66]">{h.price}</div>
+                          </div>
+                          <h3 className="font-black text-stone-800 text-base mb-3 pr-8">{h.name}</h3>
+                          <div className="space-y-2">
+                            <div className="flex items-center text-xs">
+                              <span className="w-16 font-bold text-stone-400 uppercase tracking-tighter">確認碼:</span>
+                              <span className="font-mono font-black text-stone-700 bg-stone-50 px-2 py-0.5 rounded border border-stone-100">{h.code}</span>
+                            </div>
+                            {h.tel && <a href={`tel:${h.tel}`} className="flex items-center text-xs text-[#557A66] font-bold"><Phone size={12} className="mr-2"/> {h.tel}</a>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {activeSub === 'links' && (
+                    <div className="space-y-6 animate-in fade-in duration-300">
+                      <div className="space-y-3">
+                         {monitoringTools.map((tool, idx) => (
+                            <a key={idx} href={tool.url} target="_blank" rel="noreferrer" style={{backgroundColor: tool.bg, color: tool.color}} className="flex justify-between items-center p-4 rounded-2xl font-black text-sm shadow-sm active:scale-95 transition-all"><span>{tool.title}</span><ExternalLink size={16} opacity={0.5}/></a>
+                         ))}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                         {officialLinks.map((link, idx) => (
+                            <a key={idx} href={link.url} target="_blank" rel="noreferrer" className="bg-white p-4 rounded-2xl border flex flex-col items-center justify-center text-center space-y-2 active:bg-stone-50 shadow-sm transition-all"><div className="text-[#557A66]">{link.icon}</div><span className="text-[11px] font-black">{link.title}</span></a>
+                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeSub === 'emergency' && (
+                    <div className="space-y-3">
+                      {[
+                        { title: "日本警察 (110)", tel: "110", sub: "緊急求助" },
+                        { title: "消防・救護 (119)", tel: "119", sub: "醫療與火警" },
+                        { title: "駐日代表處", tel: "+81-3-3280-7811", sub: "外交部 24H" }
+                      ].map((c, i) => (
+                        <a key={i} href={`tel:${c.tel}`} className="flex justify-between items-center p-5 bg-white rounded-[1.5rem] border border-rose-50 active:bg-rose-50 transition-all shadow-sm">
+                          <div><div className="text-sm font-black text-rose-600">{c.title}</div><div className="text-[10px] font-bold text-stone-400 mt-0.5">{c.sub}</div></div>
+                          <div className="p-2 bg-rose-50 text-rose-600 rounded-xl"><Phone size={18}/></div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedVoucher && (
+                    <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in" onClick={() => setSelectedVoucher(null)}>
+                      <div className="bg-white p-3 rounded-2xl max-w-sm w-full animate-in zoom-in" onClick={e => e.stopPropagation()}>
+                        <img src={selectedVoucher.image} className="w-full brightness-110 contrast-110 rounded-xl shadow-inner" alt="QR" />
+                        <div className="text-center pt-4">
+                           <h2 className="font-black text-stone-800 text-lg">{selectedVoucher.name}</h2>
+                           <p className="text-[10px] text-stone-400 font-bold uppercase mt-1 tracking-widest">出示掃描時請調高亮度</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {isModalOpen && (
+                    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end justify-center animate-in fade-in">
+                      <div className="bg-white w-full p-8 rounded-t-[2.5rem] space-y-4 animate-in slide-in-from-bottom shadow-2xl">
+                        <div className="flex justify-between items-center">
+                          <h2 className="text-xl font-black text-stone-800">新增憑證圖片</h2>
+                          <button onClick={() => setIsModalOpen(false)} className="text-stone-300 active:scale-90"><X/></button>
+                        </div>
+                        <input type="text" placeholder="名稱 (如: JR PASS QR)" className="w-full bg-stone-100 p-4 rounded-2xl outline-none font-bold text-stone-700" value={newVoucher.name} onChange={e => setNewVoucher({...newVoucher, name: e.target.value})} />
+                        <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept="image/*" />
+                        <button onClick={() => fileInputRef.current.click()} className="w-full border-2 border-dashed border-stone-200 p-8 rounded-2xl text-stone-400 font-bold flex flex-col items-center active:bg-stone-50 transition-colors">
+                          {newVoucher.image ? <img src={newVoucher.image} className="h-20 object-contain rounded shadow-sm" alt="preview" /> : <><ImageIcon size={32} className="mb-2"/><span className="text-xs">選擇圖片或拍照</span></>}
+                        </button>
+                        <button onClick={handleAddVoucher} className="w-full bg-[#557A66] text-white p-5 rounded-2xl font-black shadow-lg active:scale-95 transition-transform">確認儲存</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
+            const ExpenseTab = ({ expenses, setExpenses }) => {
+              const [amount, setAmount] = useState('');
+              const [category, setCategory] = useState('飲食');
+              const [note, setNote] = useState('');
+
+              const handleAdd = (e) => {
                 e.preventDefault();
-                if (!amount) return;
-                const newExp = { id: Date.now(), amount: parseFloat(amount), category, note };
+                if (!amount || isNaN(amount)) return;
+                const newExp = { id: Date.now(), amount: parseFloat(amount), category, note, date: new Date().toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' }) };
                 setExpenses([newExp, ...expenses]);
                 setAmount(''); setNote('');
-            };
-            const totalJPY = expenses.reduce((sum, e) => sum + e.amount, 0);
-            const totalTWD = (totalJPY * 0.21).toFixed(0);
+              };
 
-            return (
-                <div className="animate-in fade-in duration-300">
-                    <div className="bg-[#557A66] p-6 rounded-3xl text-white shadow-lg mb-6 text-center">
-                        <div className="text-xs font-black opacity-70 uppercase tracking-widest mb-1">Total Expenses</div>
-                        <div className="text-4xl font-black mb-1">¥ {totalJPY.toLocaleString()}</div>
-                        <div className="text-sm font-bold opacity-80">≈ NT$ {totalTWD.toLocaleString()}</div>
+              const deleteExp = (id) => setExpenses(expenses.filter(e => e.id !== id));
+              const totalJPY = expenses.reduce((acc, curr) => acc + curr.amount, 0);
+              const totalTWD = (totalJPY * EXCHANGE_RATE).toFixed(0);
+
+              return (
+                <div className="flex-1 flex flex-col h-full bg-[#F5F5F3] no-scrollbar overflow-hidden animate-in fade-in">
+                  <div className="bg-[#557A66] pt-12 pb-10 px-8 rounded-b-[3rem] shadow-2xl text-white relative">
+                    <TrendingUp className="absolute right-8 top-12 opacity-10" size={80} />
+                    <div className="relative z-10">
+                      <div className="text-xs font-black opacity-60 uppercase tracking-[0.2em] mb-2">Trip Expenses</div>
+                      <div className="flex items-baseline space-x-3 mb-1">
+                        <span className="text-4xl font-black tracking-tight">¥ {totalJPY.toLocaleString()}</span>
+                        <span className="text-sm font-bold opacity-60">≈ NT$ {totalTWD.toLocaleString()}</span>
+                      </div>
+                      <div className="text-[10px] font-black bg-white/10 inline-block px-3 py-1 rounded-full backdrop-blur-sm">Rate: 1 JPY = {EXCHANGE_RATE} TWD</div>
                     </div>
-                    <form onSubmit={handleAdd} className="bg-white p-5 rounded-3xl shadow-sm border border-stone-100 mb-6">
-                        <div className="flex space-x-2 mb-3">
-                            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="日幣 (¥)" className="flex-1 bg-stone-50 p-3 rounded-xl font-bold outline-none" />
-                            <select value={category} onChange={e => setCategory(e.target.value)} className="bg-stone-50 p-3 rounded-xl font-bold outline-none"><option>飲食</option><option>交通</option><option>購物</option><option>住宿</option></select>
-                        </div>
-                        <div className="flex space-x-2">
-                            <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="備註 (選填)" className="flex-1 bg-stone-50 p-3 rounded-xl font-bold outline-none" />
-                            <button type="submit" className="bg-[#557A66] text-white px-5 py-3 rounded-xl font-black shadow-md">+</button>
-                        </div>
+                  </div>
+                  <div className="p-6 flex-1 overflow-y-auto no-scrollbar">
+                    <form onSubmit={handleAdd} className="bg-white p-6 rounded-[2rem] border border-stone-100 mb-8 space-y-5 shadow-sm">
+                      <div className="flex space-x-3">
+                        <div className="flex-1"><label className="text-[10px] font-black text-stone-400 mb-1 block uppercase">JPY</label><input type="number" inputMode="numeric" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" className="w-full bg-stone-50 p-4 rounded-xl font-black outline-none text-stone-800" /></div>
+                        <div className="w-1/3"><label className="text-[10px] font-black text-stone-400 mb-1 block uppercase">Cat</label><select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-stone-50 p-4 rounded-xl font-black outline-none text-xs"><option>飲食</option><option>交通</option><option>購物</option><option>住宿</option><option>其他</option></select></div>
+                      </div>
+                      <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="備註..." className="w-full bg-stone-50 p-4 rounded-xl text-sm font-bold outline-none text-stone-700" />
+                      <button type="submit" className="w-full bg-[#557A66] text-white p-5 rounded-2xl font-black shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition-all"><Plus size={18} strokeWidth={3}/><span>新增消費紀錄</span></button>
                     </form>
-                    <div className="space-y-3">
-                        {expenses.map(exp => (
-                            <div key={exp.id} className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm border border-stone-50">
-                                <div>
-                                    <div className="text-sm font-black">{exp.note || exp.category}</div>
-                                    <div className="text-[10px] text-stone-400 font-bold bg-stone-100 inline-block px-2 py-0.5 rounded mt-1">{exp.category}</div>
-                                </div>
-                                <div className="flex items-center space-x-4">
-                                    <span className="font-black">¥{exp.amount}</span>
-                                    <button onClick={() => setExpenses(expenses.filter(e => e.id !== exp.id))} className="text-stone-300 hover:text-rose-500"><Icons.Trash /></button>
-                                </div>
-                            </div>
-                        ))}
+                    <div className="space-y-4 pb-12">
+                      {expenses.map(exp => (
+                        <div key={exp.id} className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm border border-stone-50">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 rounded-xl bg-stone-50 flex items-center justify-center text-[#557A66] text-[10px] font-black uppercase tracking-tighter">{exp.category}</div>
+                            <div><div className="text-sm font-black text-stone-800">{exp.note || exp.category}</div><div className="text-[10px] text-stone-400">NT$ {(exp.amount * EXCHANGE_RATE).toFixed(0)}</div></div>
+                          </div>
+                          <div className="flex items-center space-x-4"><span className="font-black text-stone-800">¥{exp.amount}</span><button onClick={() => deleteExp(exp.id)} className="text-stone-200 hover:text-rose-500 active:scale-75 transition-all"><Trash2 size={16}/></button></div>
+                        </div>
+                      ))}
+                      {expenses.length === 0 && <div className="text-center py-10 text-stone-300 font-bold italic">目前尚無紀錄</div>}
                     </div>
+                  </div>
                 </div>
-            );
-        }
+              );
+            };
 
-        function ChecklistTab({ checklist, setChecklist }) {
-            const [newItem, setNewItem] = useState('');
-            const toggle = (id) => setChecklist(checklist.map(t => t.id === id ? { ...t, checked: !t.checked } : t));
-            const remove = (id) => setChecklist(checklist.filter(t => t.id !== id));
-            const add = () => { if(newItem) { setChecklist([...checklist, {id: Date.now(), text: newItem, checked: false}]); setNewItem(''); } };
+            const ChecklistTab = ({ checklist, setChecklist }) => {
+              const [newItem, setNewItem] = useState('');
+              const [activeGroup, setActiveGroup] = useState('行李物品');
+              const toggle = (id) => setChecklist(checklist.map(t => t.id === id ? { ...t, checked: !t.checked } : t));
+              const remove = (id) => setChecklist(checklist.filter(t => t.id !== id));
+              const add = () => { if(!newItem.trim()) return; setChecklist([...checklist, {id: Date.now(), group: activeGroup, text: newItem, checked: false}]); setNewItem(''); };
+              const groups = useMemo(() => {
+                const r = {};
+                checklist.forEach(t => { if(!r[t.group]) r[t.group] = []; r[t.group].push(t); });
+                return r;
+              }, [checklist]);
 
-            return (
-                <div className="animate-in fade-in duration-300">
-                    <div className="flex space-x-2 mb-6">
-                        <input type="text" value={newItem} onChange={e => setNewItem(e.target.value)} placeholder="新增行李..." className="flex-1 bg-white p-4 rounded-2xl font-bold outline-none shadow-sm border border-stone-100" />
-                        <button onClick={add} className="bg-stone-800 text-white px-6 rounded-2xl font-black shadow-md">+</button>
+              return (
+                <div className="flex-1 overflow-y-auto bg-[#F5F5F3] p-5 pb-24 no-scrollbar animate-in fade-in">
+                  <h1 className="text-xl font-black text-stone-800 mb-6 font-noto">整理清單</h1>
+                  <div className="bg-white p-6 rounded-[2rem] shadow-sm mb-8 space-y-4 border border-stone-50">
+                    <div className="flex space-x-2 overflow-x-auto no-scrollbar pb-1">
+                       {['證件類', '票券類', '金錢相關', '3C 產品', '行李物品'].map(g => (
+                         <button key={g} onClick={() => setActiveGroup(g)} className={`flex-shrink-0 px-4 py-2 rounded-xl text-[10px] font-black transition-all ${activeGroup === g ? 'bg-stone-800 text-white shadow-md' : 'bg-stone-50 text-stone-400 border border-stone-100'}`}>{g}</button>
+                       ))}
                     </div>
-                    <div className="bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden">
-                        {checklist.map((item, idx) => (
-                            <div key={item.id} className={`flex items-center p-4 ${idx !== checklist.length-1 ? 'border-b border-stone-50' : ''}`}>
-                                <button onClick={() => toggle(item.id)} className={`flex-1 text-left font-bold text-[15px] transition-all ${item.checked ? 'text-stone-300 line-through' : 'text-stone-700'}`}>
-                                    {item.checked ? '✅ ' : '⬜ '}{item.text}
-                                </button>
-                                <button onClick={() => remove(item.id)} className="text-stone-200 hover:text-rose-500 p-2"><Icons.Trash /></button>
-                            </div>
+                    <div className="flex space-x-2"><input type="text" value={newItem} onChange={e => setNewItem(e.target.value)} placeholder={`新增至 ${activeGroup}...`} className="flex-1 bg-stone-50 p-4 rounded-2xl font-bold outline-none text-sm text-stone-700" onKeyDown={e => e.key === 'Enter' && add()} /><button onClick={add} className="bg-[#557A66] text-white p-4 rounded-2xl shadow-lg active:scale-95 transition-all"><Plus strokeWidth={3}/></button></div>
+                  </div>
+                  {Object.entries(groups).map(([g, items]) => (
+                    <div key={g} className="mb-8">
+                      <div className="flex justify-between items-center mb-3 ml-1">
+                         <h2 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{g}</h2>
+                         <span className="text-[9px] font-black bg-stone-200 text-stone-500 px-1.5 py-0.5 rounded-full">{items.filter(i => i.checked).length}/{items.length}</span>
+                      </div>
+                      <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-stone-50">
+                        {items.map((item, idx) => (
+                          <div key={item.id} className={`flex items-center p-5 border-stone-50 group ${idx !== items.length-1 ? 'border-b' : ''}`}>
+                            <button onClick={() => toggle(item.id)} className="flex-1 flex items-center text-left">
+                              {item.checked ? <CheckCircle2 size={24} className="text-[#557A66] mr-4 flex-shrink-0" /> : <Circle size={24} className="text-stone-200 mr-4 flex-shrink-0" />}
+                              <span className={`text-[15px] font-bold transition-all ${item.checked ? 'text-stone-300 line-through italic' : 'text-stone-700'}`}>{item.text}</span>
+                            </button>
+                            <button onClick={() => remove(item.id)} className="text-stone-100 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all p-1"><Trash2 size={18}/></button>
+                          </div>
                         ))}
+                      </div>
                     </div>
+                  ))}
                 </div>
-            );
-        }
+              );
+            };
 
-        function TabBtn({ id, icon: Icon, label, active, set }) {
-            const isActive = active === id;
-            return (
-                <button onClick={() => set(id)} className={`flex flex-col items-center space-y-1 w-16 transition-all ${isActive ? 'text-[#557A66]' : 'text-stone-300 active:scale-90'}`}>
-                    <Icon />
-                    <span className={`text-[10px] font-black uppercase ${isActive ? 'opacity-100' : 'opacity-50'}`}>{label}</span>
-                </button>
-            );
-        }
+            // --- 主程式 Layout ---
+            function App() {
+              const [activeTab, setActiveTab] = useState('itinerary');
+              const [tripData, setTripData] = useState(INITIAL_TRIP_DATA);
+              const [expenses, setExpenses] = useState([]);
+              const [checklist, setChecklist] = useState([]);
+              const [isSyncing, setIsSyncing] = useState(false);
+              const [lastSynced, setLastSynced] = useState(null);
+              const [supabaseClient, setSupabaseClient] = useState(null);
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+              useEffect(() => {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
+                script.onload = () => { if (window.supabase) setSupabaseClient(window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)); };
+                document.head.appendChild(script);
+                
+                const cachedExp = localStorage.getItem('kansai_final_exp');
+                const cachedCheck = localStorage.getItem('kansai_final_check');
+                const cachedTrip = localStorage.getItem('kansai_final_trip');
+                if (cachedExp) setExpenses(JSON.parse(cachedExp));
+                if (cachedCheck) setChecklist(JSON.parse(cachedCheck)); else setChecklist(INITIAL_CHECKLIST);
+                if (cachedTrip) setTripData(JSON.parse(cachedTrip));
+              }, []);
+
+              useEffect(() => {
+                if (!supabaseClient) return;
+                const load = async () => {
+                  const { data } = await supabaseClient.from('trips').select('trip_data').eq('id', 1).maybeSingle();
+                  if (data?.trip_data) {
+                    const d = data.trip_data;
+                    if (d.expenses) setExpenses(d.expenses);
+                    if (d.checklist) setChecklist(d.checklist);
+                    if (d.itinerary) setTripData(d.itinerary);
+                    setLastSynced(new Date().toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }));
+                  }
+                };
+                load();
+              }, [supabaseClient]);
+
+              useEffect(() => {
+                localStorage.setItem('kansai_final_exp', JSON.stringify(expenses));
+                localStorage.setItem('kansai_final_check', JSON.stringify(checklist));
+                localStorage.setItem('kansai_final_trip', JSON.stringify(tripData));
+              }, [expenses, checklist, tripData]);
+
+              const syncData = async () => {
+                if (!supabaseClient) return;
+                setIsSyncing(true);
+                try {
+                  await supabaseClient.from('trips').upsert({ id: 1, trip_data: { itinerary: tripData, expenses, checklist } });
+                  setLastSynced(new Date().toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }));
+                } catch (e) { console.error(e); }
+                setIsSyncing(false);
+              };
+
+              // 🛠️ 修正 3：這裡的 icon 改成使用安全的 MapIcon，避免跟瀏覽器撞車
+              const tabs = [
+                { id: 'itinerary', icon: MapIcon, label: '行程' },
+                { id: 'info', icon: Info, label: '資訊' },
+                { id: 'expenses', icon: Receipt, label: '記帳' },
+                { id: 'checklist', icon: ListChecks, label: '清單' },
+              ];
+
+              return (
+                <div className="max-w-md mx-auto h-screen bg-black sm:py-6 overflow-hidden relative font-sans antialiased text-stone-800">
+                  <div className="w-full h-full bg-[#F5F5F3] flex flex-col relative sm:rounded-[3.5rem] overflow-hidden border-8 border-black shadow-2xl">
+                    {activeTab === 'itinerary' && <ItineraryTab tripData={tripData} syncData={syncData} isSyncing={isSyncing} lastSynced={lastSynced} />}
+                    {activeTab === 'info' && <InfoTab tripData={tripData} updateVouchers={(v) => setTripData({...tripData, vouchers: v})} />}
+                    {activeTab === 'expenses' && <ExpenseTab expenses={expenses} setExpenses={setExpenses} />}
+                    {activeTab === 'checklist' && <ChecklistTab checklist={checklist} setChecklist={setChecklist} />}
+
+                    <div className="absolute bottom-0 w-full bg-white/95 backdrop-blur-2xl border-t border-stone-100 px-8 py-5 flex justify-between items-center pb-8">
+                      {tabs.map(tab => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
+                        return (
+                          <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex flex-col items-center justify-center w-14 transition-all duration-300 active:scale-75 ${isActive ? 'text-[#557A66]' : 'text-stone-300'}`}>
+                            <Icon size={isActive ? 28 : 24} strokeWidth={isActive ? 3 : 2} /><span className={`text-[10px] mt-2 font-black uppercase tracking-tighter ${isActive ? 'opacity-100' : 'opacity-30'}`}>{tab.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <style dangerouslySetInnerHTML={{__html: `
+                    .no-scrollbar::-webkit-scrollbar { display: none; }
+                    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                    .pb-safe { padding-bottom: env(safe-area-inset-bottom, 2rem); }
+                    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+                    body { font-family: 'Noto Sans TC', sans-serif; }
+                  `}} />
+                </div>
+              );
+            }
+
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(<App />);
+        })(); // 🛡️ 防護罩結尾
     </script>
 </body>
 </html>
