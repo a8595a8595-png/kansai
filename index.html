@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #F5F5F3; }
@@ -23,17 +23,30 @@
         (() => {
             const { useState, useMemo, useEffect, useRef } = React;
             
-            // 🛡️ 終極防護罩：如果找不到圖示，就顯示透明方塊，絕對不讓網頁崩潰！
-            const createIcon = (name) => (props) => {
-                const iconName = name === 'ImageIcon' ? 'Image' : name;
-                // 從 window.lucide 抓取正確的元件
-                const Comp = window.lucide ? window.lucide[iconName] : null;
-                // 如果抓不到，回傳一個安全的安全透明框框
-                if (!Comp) return <span style={{width: props.size||24, height: props.size||24}} className={`inline-block ${props.className||''}`} />;
-                return <Comp {...props} />;
+            // 🛡️ 終極無敵圖示畫筆：負責把原生圖案轉成 React 看得懂的格式，保證不當機
+            const createIcon = (iconName) => ({ size = 24, className = "", strokeWidth = 2, ...props }) => {
+                const ref = useRef(null);
+                useEffect(() => {
+                    if (ref.current && window.lucide && window.lucide.icons) {
+                        const iconData = window.lucide.icons[iconName];
+                        ref.current.innerHTML = '';
+                        if (iconData) {
+                            const svg = window.lucide.createElement(iconData);
+                            svg.setAttribute('width', size);
+                            svg.setAttribute('height', size);
+                            svg.setAttribute('stroke', 'currentColor');
+                            svg.setAttribute('stroke-width', strokeWidth);
+                            svg.setAttribute('fill', 'none');
+                            svg.setAttribute('stroke-linecap', 'round');
+                            svg.setAttribute('stroke-linejoin', 'round');
+                            ref.current.appendChild(svg);
+                        }
+                    }
+                }, [size, strokeWidth]);
+                return <span ref={ref} className={`inline-flex items-center justify-center ${className}`} {...props} />;
             };
 
-            // 匯入您所有設計精美的圖示
+            // 準備所有您需要的精美圖示
             const MapIcon = createIcon('Map');
             const Info = createIcon('Info');
             const Receipt = createIcon('Receipt');
@@ -43,43 +56,30 @@
             const Hotel = createIcon('Hotel');
             const MapPin = createIcon('MapPin');
             const Clock = createIcon('Clock');
-            const Sun = createIcon('Sun');
             const Cloud = createIcon('Cloud');
             const Plus = createIcon('Plus');
             const Trash2 = createIcon('Trash2');
             const ExternalLink = createIcon('ExternalLink');
-            const ChevronDown = createIcon('ChevronDown');
-            const ChevronUp = createIcon('ChevronUp');
             const CheckCircle2 = createIcon('CheckCircle2');
             const Circle = createIcon('Circle');
             const RefreshCw = createIcon('RefreshCw');
             const QrCode = createIcon('QrCode');
             const X = createIcon('X');
-            const ImagePlus = createIcon('ImagePlus');
-            const Maximize2 = createIcon('Maximize2');
             const AlertCircle = createIcon('AlertCircle');
             const Phone = createIcon('Phone');
             const Link2 = createIcon('Link2');
-            const Monitor = createIcon('Monitor');
-            const Smartphone = createIcon('Smartphone');
-            const Briefcase = createIcon('Briefcase');
-            const CreditCard = createIcon('CreditCard');
             const TrendingUp = createIcon('TrendingUp');
-            const CalendarDays = createIcon('CalendarDays');
-            const Luggage = createIcon('Luggage');
-            const Check = createIcon('Check');
-            const ImageIcon = createIcon('ImageIcon');
+            const ImageIcon = createIcon('Image');
             const Flower2 = createIcon('Flower2');
             const Zap = createIcon('Zap');
             const Bus = createIcon('Bus');
             const Footprints = createIcon('Footprints');
             const ClipboardCheck = createIcon('ClipboardCheck');
-            const ArrowRightLeft = createIcon('ArrowRightLeft');
             const Ticket = createIcon('Ticket');
 
             // --- 常數定義 ---
             const SUPABASE_URL = 'https://fcoldniwdpoercogqrrq.supabase.co';
-            const SUPABASE_ANON_KEY = 'sb_publishable_pfFfXYbrqX3RQzf9dhPFdQ_rvIIksZn';
+            const SUPABASE_ANON_KEY = 'sb_publishable_pfFfXYbrqX3RQzf9dhPFdQ_rvIIksZn'; // 已補齊 n
 
             const INITIAL_TRIP_DATA = {
               title: "2026 關西深度之旅",
@@ -185,11 +185,8 @@
             const EXCHANGE_RATE = 0.21; 
 
             // --- 子組件 ---
-
             const Tag = ({ children, colorClass }) => (
-              <span className={`text-[10px] px-2 py-0.5 rounded-md border font-black uppercase tracking-wider ${colorClass}`}>
-                {children}
-              </span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-md border font-black uppercase tracking-wider ${colorClass}`}>{children}</span>
             );
 
             const TimelineNode = ({ event, isLast }) => {
@@ -217,14 +214,10 @@
               return (
                 <div className="relative flex group">
                   <div className="flex flex-col items-center mr-4 w-14 flex-shrink-0">
-                    <span className={`text-[10px] font-black tracking-tighter mb-1 ${isMain ? 'text-stone-800' : 'text-stone-400'}`}>
-                      {event.time}
-                    </span>
+                    <span className={`text-[10px] font-black tracking-tighter mb-1 ${isMain ? 'text-stone-800' : 'text-stone-400'}`}>{event.time}</span>
                     <div className={`w-0.5 grow relative ${isLast ? 'bg-transparent' : 'bg-stone-200'}`}>
                       <div className={`absolute top-0 left-1/2 -translate-x-1/2 rounded-full z-10 shadow-sm border-2 transition-all group-active:scale-110 ${
-                        isMain 
-                          ? 'w-7 h-7 -mt-1 -ml-3.5 bg-[#557A66] border-white text-white flex items-center justify-center' 
-                          : 'w-3 h-3 mt-1 -ml-1.5 bg-white border-stone-300'
+                        isMain ? 'w-7 h-7 -mt-1 -ml-3.5 bg-[#557A66] border-white text-white flex items-center justify-center' : 'w-3 h-3 mt-1 -ml-1.5 bg-white border-stone-300'
                       }`}>
                         {isMain && getIcon()}
                       </div>
@@ -232,9 +225,7 @@
                   </div>
 
                   <div className={`flex-1 pb-10 ${isMain ? 'pt-0' : 'pt-0.5'}`}>
-                    <div className={`rounded-2xl transition-all ${
-                      isMain ? 'bg-white p-5 shadow-md border border-stone-100' : 'bg-stone-50/50 px-3 py-2 border border-dashed border-stone-200'
-                    }`}>
+                    <div className={`rounded-2xl transition-all ${isMain ? 'bg-white p-5 shadow-md border border-stone-100' : 'bg-stone-50/50 px-3 py-2 border border-dashed border-stone-200'}`}>
                       <div className="flex items-start justify-between mb-1">
                         <div className="flex items-center space-x-2">
                           {!isMain && <span className="text-stone-400">{getIcon()}</span>}
