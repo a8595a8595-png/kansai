@@ -19,142 +19,241 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect } = React;
 
-        const INITIAL_TRIP_DATA = {
-            title: "2026 關西深度之旅",
-            itinerary: [
-                { day: 1, date: "04/06", title: "花蓮 ➔ 台北 ➔ 關西機場", location: "泉佐野", events: [
-                    { time: "12:18", type: "🚄", title: "花蓮火車站", desc: "台鐵 417 次 (EMU3000)" },
-                    { time: "18:15", type: "✈️", title: "樂桃 MM028 起飛", desc: "桃園機場 T1" },
-                    { time: "23:00", type: "🎟️", title: "領取 JR PASS & 指定席券", desc: "尋找綠色售票機 (地球儀標示)", tag: "#重要任務" }
-                ]},
-                { day: 2, date: "04/07", title: "直奔天橋立 & 伊根", location: "伊根", events: [
-                    { time: "06:31", type: "🚄", title: "特急 HARUKA 2號", desc: "關西機場 ➔ 京都", tag: "#指定席券①" },
-                    { time: "08:38", type: "🚄", title: "特急 Hashidate 1號", desc: "京都 ➔ 天橋立", tag: "#指定席券②" }
-                ]},
-                { day: 3, date: "04/08", title: "天橋立 ➔ 美山", location: "美山", events: [
-                    { time: "09:50", type: "🚄", title: "特急 Hashidate 2號", desc: "天橋立 ➔ 園部", tag: "#指定席券③" },
-                    { time: "12:10", type: "🚌", title: "南丹市營巴士", desc: "日吉站前上車 (投幣 ¥600)" }
-                ]},
-                { day: 4, date: "04/09", title: "美山 ➔ 嵐山 ➔ 大津", location: "大津", events: [
-                    { time: "12:16", type: "🚄", title: "JR 普通車", desc: "園部 ➜ 馬堀", tag: "#關鍵轉乘" },
-                    { time: "13:30", type: "🚂", title: "嵐山小火車", desc: "小火車龜岡站 ➔ 小火車嵐山站", tag: "#已預約", ticket: "https://linkt.to/Ucou23Mw" }
-                ]},
-                { day: 5, date: "04/10", title: "近江八幡 ➔ 關西機場", location: "泉佐野", events: [
-                    { time: "09:20", type: "🛅", title: "近江八幡寄存行李", desc: "JR 車站置物櫃", tag: "#關鍵任務" },
-                    { time: "16:30", type: "🚄", title: "特急 HARUKA 43號", desc: "京都 ➜ 關西機場", tag: "#指定席券④" }
-                ]},
-                { day: 6, date: "04/11", title: "早班機回家", location: "花蓮", events: [
-                    { time: "05:40", type: "🚆", title: "南海電鐵", desc: "泉佐野 ➜ 關西機場 (T1)" },
-                    { time: "07:50", type: "✈️", title: "樂桃 MM023 起飛", desc: "關西 T2 ➜ 桃園 T1" }
-                ]}
-            ]
-        };
+        const EXCHANGE_RATE = 0.21; // 日幣換台幣匯率
 
-        // 安全的 SVG 圖示 (取代原本容易當機的外部圖示庫)
-        const SafeIcons = {
-            Map: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>,
-            Info: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>,
-            Receipt: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"></path><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 17.5v-11"></path></svg>,
-            Checklist: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        // 預設行李清單
+        const INITIAL_CHECKLIST = [
+            { id: 1, group: '證件類', text: '護照 (效期6個月以上)', checked: false },
+            { id: 2, group: '證件類', text: 'JR PASS 預約 QR Code', checked: false },
+            { id: 3, group: '票券類', text: '樂桃航空機票', checked: false },
+            { id: 4, group: '金錢相關', text: '日幣現金 7~8 萬', checked: false },
+            { id: 5, group: '金錢相關', text: '信用卡 2 張', checked: false },
+            { id: 6, group: '行李物品', text: '29吋大行李箱', checked: false },
+        ];
+
+        const ITINERARY_DATA = [
+            { day: 1, date: "04/06", title: "花蓮 ➔ 台北 ➔ 關西機場", events: [
+                { time: "12:18", type: "🚄", title: "花蓮火車站", desc: "台鐵 417 次 (EMU3000)" },
+                { time: "18:15", type: "✈️", title: "樂桃 MM028 起飛", desc: "桃園機場 T1" },
+                { time: "23:00", type: "🎟️", title: "領取 JR PASS & 指定席券", desc: "尋找綠色機台", tag: "#重要任務" }
+            ]},
+            { day: 2, date: "04/07", title: "直奔天橋立 & 伊根", events: [
+                { time: "06:31", type: "🚄", title: "特急 HARUKA 2號", desc: "關西機場 ➔ 京都", tag: "#指定席券①" },
+                { time: "08:38", type: "🚄", title: "特急 Hashidate 1號", desc: "京都 ➔ 天橋立", tag: "#指定席券②" }
+            ]},
+            { day: 3, date: "04/08", title: "天橋立 ➔ 美山", events: [
+                { time: "09:50", type: "🚄", title: "特急 Hashidate 2號", desc: "天橋立 ➔ 園部", tag: "#指定席券③" },
+                { time: "12:10", type: "🚌", title: "南丹市營巴士", desc: "日吉站前上車 (投幣 ¥600)" }
+            ]},
+            { day: 4, date: "04/09", title: "美山 ➔ 嵐山 ➔ 大津", events: [
+                { time: "12:16", type: "🚄", title: "JR 普通車", desc: "園部 ➜ 馬堀", tag: "#關鍵轉乘" },
+                { time: "13:30", type: "🚂", title: "嵐山小火車", desc: "龜岡 ➔ 嵐山", tag: "#已預約", ticket: "https://linkt.to/Ucou23Mw" }
+            ]},
+            { day: 5, date: "04/10", title: "近江八幡 ➔ 關西機場", events: [
+                { time: "09:20", type: "🛅", title: "近江八幡寄存行李", desc: "JR 車站置物櫃", tag: "#關鍵任務" },
+                { time: "16:30", type: "🚄", title: "特急 HARUKA 43號", desc: "京都 ➜ 關西機場", tag: "#指定席券④" }
+            ]},
+            { day: 6, date: "04/11", title: "早班機回家", events: [
+                { time: "05:40", type: "🚆", title: "南海電鐵", desc: "泉佐野 ➜ 關西機場" },
+                { time: "07:50", type: "✈️", title: "樂桃 MM023 起飛", desc: "關西 T2 ➜ 桃園 T1" }
+            ]}
+        ];
+
+        // 安全 SVG 圖示
+        const Icons = {
+            Map: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>,
+            Info: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>,
+            Receipt: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"></path><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 17.5v-11"></path></svg>,
+            Checklist: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>,
+            Trash: () => <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
         };
 
         function App() {
             const [activeTab, setActiveTab] = useState('itinerary');
             const [selectedDay, setSelectedDay] = useState(1);
             
-            const currentDayData = INITIAL_TRIP_DATA.itinerary.find(d => d.day === selectedDay) || INITIAL_TRIP_DATA.itinerary[0];
+            // 讀取/儲存記帳資料 (LocalStorage)
+            const [expenses, setExpenses] = useState(() => {
+                const saved = localStorage.getItem('kansai_expenses');
+                return saved ? JSON.parse(saved) : [];
+            });
+            
+            // 讀取/儲存清單資料 (LocalStorage)
+            const [checklist, setChecklist] = useState(() => {
+                const saved = localStorage.getItem('kansai_checklist');
+                return saved ? JSON.parse(saved) : INITIAL_CHECKLIST;
+            });
+
+            // 當資料改變時，自動存進手機裡
+            useEffect(() => { localStorage.setItem('kansai_expenses', JSON.stringify(expenses)); }, [expenses]);
+            useEffect(() => { localStorage.setItem('kansai_checklist', JSON.stringify(checklist)); }, [checklist]);
+
+            const currentDayData = ITINERARY_DATA.find(d => d.day === selectedDay);
 
             return (
-                <div className="max-w-md mx-auto min-h-screen bg-[#F5F5F3] pb-24 shadow-2xl relative">
+                <div className="max-w-md mx-auto min-h-screen bg-[#F5F5F3] pb-24 shadow-2xl relative text-stone-800">
                     
-                    {/* 上方標題列 */}
+                    {/* Header */}
                     <div className="bg-white p-6 sticky top-0 z-50 border-b flex justify-between items-center shadow-sm">
                         <div>
-                            <h1 className="text-xl font-black text-stone-800">{INITIAL_TRIP_DATA.title}</h1>
-                            <p className="text-[10px] text-[#557A66] font-bold">2026.04.06 - 04.11</p>
+                            <h1 className="text-xl font-black">2026 關西深度之旅</h1>
+                            <p className="text-[10px] text-[#557A66] font-bold tracking-widest">2026.04.06 - 04.11</p>
                         </div>
                     </div>
 
                     <main className="p-4">
-                        {/* 【行程】分頁 */}
+                        
+                        {/* 📍 行程分頁 */}
                         {activeTab === 'itinerary' && (
-                            <div>
-                                {/* 天數選擇按鈕 */}
+                            <div className="animate-in fade-in duration-300">
                                 <div className="flex space-x-2 overflow-x-auto no-scrollbar mb-6 pb-2">
                                     {[1,2,3,4,5,6].map(d => (
-                                        <button key={d} onClick={() => setSelectedDay(d)} 
-                                            className={`px-5 py-2 rounded-full text-sm font-black shrink-0 transition-all shadow-sm 
-                                            ${selectedDay === d ? 'bg-stone-800 text-white translate-y-[-2px]' : 'bg-white text-stone-400 border border-stone-100'}`}>
+                                        <button key={d} onClick={() => setSelectedDay(d)} className={`px-5 py-2 rounded-full text-sm font-black shrink-0 transition-all shadow-sm ${selectedDay === d ? 'bg-stone-800 text-white' : 'bg-white text-stone-400 border border-stone-100'}`}>
                                             Day {d}
                                         </button>
                                     ))}
                                 </div>
-
-                                {/* 時間軸 */}
                                 <div className="relative pl-6 border-l-2 border-stone-200 ml-2">
                                     {currentDayData.events.map((ev, idx) => (
-                                        <div key={idx} className="mb-8 relative bg-white p-4 rounded-2xl shadow-sm border border-stone-100">
-                                            {/* 左側圓點 */}
-                                            <div className="absolute -left-[35px] top-4 w-4 h-4 rounded-full bg-white border-4 border-[#557A66]"></div>
-                                            
-                                            <div className="flex justify-between items-start mb-1">
+                                        <div key={idx} className="mb-8 relative bg-white p-5 rounded-2xl shadow-sm border border-stone-100">
+                                            <div className="absolute -left-[37px] top-4 w-4 h-4 rounded-full bg-white border-4 border-[#557A66]"></div>
+                                            <div className="flex justify-between items-start mb-2">
                                                 <div className="flex items-center space-x-2">
                                                     <span className="text-xl">{ev.type}</span>
-                                                    <h3 className="font-black text-stone-800 text-lg">{ev.title}</h3>
+                                                    <h3 className="font-black text-lg">{ev.title}</h3>
                                                 </div>
                                                 <span className="text-xs font-black text-stone-400 bg-stone-50 px-2 py-1 rounded">{ev.time}</span>
                                             </div>
-                                            
                                             <p className="text-sm text-stone-500 font-bold ml-7">{ev.desc}</p>
-                                            
-                                            {ev.tag && <span className="inline-block mt-2 ml-7 text-[10px] bg-rose-50 text-rose-500 px-2 py-1 rounded-md border border-rose-100 font-bold tracking-wider">{ev.tag}</span>}
-                                            
-                                            {ev.ticket && (
-                                                <a href={ev.ticket} target="_blank" className="mt-3 ml-7 flex items-center justify-center space-x-2 py-3 bg-rose-600 text-white rounded-xl font-black text-sm active:scale-95 transition-transform shadow-md">
-                                                    <span>🎫 查看當天電子票券</span>
-                                                </a>
-                                            )}
+                                            {ev.tag && <span className="inline-block mt-2 ml-7 text-[10px] bg-rose-50 text-rose-500 px-2 py-1 rounded-md border border-rose-100 font-bold">{ev.tag}</span>}
+                                            {ev.ticket && <a href={ev.ticket} target="_blank" className="mt-3 ml-7 flex items-center justify-center space-x-2 py-3 bg-rose-600 text-white rounded-xl font-black text-sm active:scale-95 transition-transform shadow-md">🎫 查看當天電子票</a>}
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         )}
 
-                        {/* 【資訊】分頁 */}
+                        {/* ℹ️ 資訊分頁 */}
                         {activeTab === 'info' && (
-                            <div className="space-y-6">
-                                <h2 className="font-black text-stone-800 text-lg">即時情報與工具</h2>
+                            <div className="space-y-6 animate-in fade-in duration-300">
+                                <h2 className="font-black text-lg">即時情報與工具</h2>
                                 <a href="https://weathernews.jp/sakura/area/kinki/" target="_blank" className="block p-5 bg-pink-50 rounded-2xl border border-pink-100 text-pink-600 font-black flex justify-between shadow-sm active:scale-95 transition-transform">🌸 櫻花開花即時報 <span>➜</span></a>
                                 <a href="https://platinumaps.jp/d/kyoto-station-smart-navi?culture=zh-tw&gm=187&floor=1F" target="_blank" className="block p-5 bg-blue-50 rounded-2xl border border-blue-100 text-blue-600 font-black flex justify-between shadow-sm active:scale-95 transition-transform">🛅 京都站行李櫃空位 <span>➜</span></a>
                                 
-                                <h2 className="font-black text-stone-800 text-lg pt-4 border-t">官方交通地圖 (PDF)</h2>
+                                <h2 className="font-black text-lg pt-4 border-t">官方交通地圖 (PDF)</h2>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <a href="https://www.westjr.co.jp/global/tc/timetable/pdf/ubn_tc.pdf" target="_blank" className="bg-white p-4 rounded-2xl border text-center font-bold text-sm shadow-sm active:bg-stone-50">JR West 路線圖</a>
-                                    <a href="https://www.nankai.co.jp/tc_railway/traffic/railmap.html" target="_blank" className="bg-white p-4 rounded-2xl border text-center font-bold text-sm shadow-sm active:bg-stone-50">南海電鐵路線圖</a>
-                                    <a href="https://www.city.nantan.kyoto.jp/www/life/116/001/000/90801/1013457_1_501_50.pdf" target="_blank" className="bg-white p-4 rounded-2xl border text-center font-bold text-sm shadow-sm active:bg-stone-50">南丹市營巴士</a>
-                                    <a href="https://www.tankai.jp/tw/bus/tankai-bus/" target="_blank" className="bg-white p-4 rounded-2xl border text-center font-bold text-sm shadow-sm active:bg-stone-50">丹海巴士時刻表</a>
+                                    <a href="https://www.westjr.co.jp/global/tc/timetable/pdf/ubn_tc.pdf" target="_blank" className="bg-white p-4 rounded-2xl border text-center font-bold text-sm shadow-sm">JR West 路線圖</a>
+                                    <a href="https://www.nankai.co.jp/tc_railway/traffic/railmap.html" target="_blank" className="bg-white p-4 rounded-2xl border text-center font-bold text-sm shadow-sm">南海電鐵路線圖</a>
+                                    <a href="https://www.city.nantan.kyoto.jp/www/life/116/001/000/90801/1013457_1_501_50.pdf" target="_blank" className="bg-white p-4 rounded-2xl border text-center font-bold text-sm shadow-sm">南丹市營巴士</a>
                                 </div>
                             </div>
                         )}
-                        
-                        {/* 預留空間給未來開發的記帳與清單 */}
-                        {(activeTab === 'expenses' || activeTab === 'checklist') && (
-                            <div className="flex flex-col items-center justify-center h-64 text-stone-400">
-                                <span className="text-4xl mb-4">🚧</span>
-                                <h2 className="font-black">功能建置中...</h2>
-                                <p className="text-sm">確定畫面不會白屏後，我們再來補上這塊！</p>
-                            </div>
+
+                        {/* 💰 記帳分頁 */}
+                        {activeTab === 'expenses' && (
+                            <ExpenseTab expenses={expenses} setExpenses={setExpenses} />
                         )}
+
+                        {/* ✅ 清單分頁 */}
+                        {activeTab === 'checklist' && (
+                            <ChecklistTab checklist={checklist} setChecklist={setChecklist} />
+                        )}
+
                     </main>
 
                     {/* 底部導航列 */}
                     <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t px-6 py-4 flex justify-between items-center shadow-inner z-50">
-                        <TabBtn id="itinerary" icon={SafeIcons.Map} label="行程" active={activeTab} set={setActiveTab} />
-                        <TabBtn id="info" icon={SafeIcons.Info} label="資訊" active={activeTab} set={setActiveTab} />
-                        <TabBtn id="expenses" icon={SafeIcons.Receipt} label="記帳" active={activeTab} set={setActiveTab} />
-                        <TabBtn id="checklist" icon={SafeIcons.Checklist} label="清單" active={activeTab} set={setActiveTab} />
+                        <TabBtn id="itinerary" icon={Icons.Map} label="行程" active={activeTab} set={setActiveTab} />
+                        <TabBtn id="info" icon={Icons.Info} label="資訊" active={activeTab} set={setActiveTab} />
+                        <TabBtn id="expenses" icon={Icons.Receipt} label="記帳" active={activeTab} set={setActiveTab} />
+                        <TabBtn id="checklist" icon={Icons.Checklist} label="清單" active={activeTab} set={setActiveTab} />
+                    </div>
+                </div>
+            );
+        }
+
+        /* --- 獨立組件：記帳 --- */
+        function ExpenseTab({ expenses, setExpenses }) {
+            const [amount, setAmount] = useState('');
+            const [category, setCategory] = useState('飲食');
+            const [note, setNote] = useState('');
+
+            const handleAdd = (e) => {
+                e.preventDefault();
+                if (!amount) return;
+                const newExp = { id: Date.now(), amount: parseFloat(amount), category, note };
+                setExpenses([newExp, ...expenses]);
+                setAmount(''); setNote('');
+            };
+
+            const totalJPY = expenses.reduce((sum, e) => sum + e.amount, 0);
+            const totalTWD = (totalJPY * 0.21).toFixed(0);
+
+            return (
+                <div className="animate-in fade-in duration-300">
+                    <div className="bg-[#557A66] p-6 rounded-3xl text-white shadow-lg mb-6">
+                        <div className="text-xs font-black opacity-70 uppercase tracking-widest mb-1">Total Expenses</div>
+                        <div className="text-4xl font-black mb-1">¥ {totalJPY.toLocaleString()}</div>
+                        <div className="text-sm font-bold opacity-80">≈ NT$ {totalTWD.toLocaleString()}</div>
+                    </div>
+
+                    <form onSubmit={handleAdd} className="bg-white p-5 rounded-3xl shadow-sm border border-stone-100 mb-6">
+                        <div className="flex space-x-2 mb-3">
+                            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="日幣金額 (¥)" className="flex-1 bg-stone-50 p-3 rounded-xl font-bold outline-none" />
+                            <select value={category} onChange={e => setCategory(e.target.value)} className="bg-stone-50 p-3 rounded-xl font-bold outline-none">
+                                <option>飲食</option><option>交通</option><option>購物</option><option>住宿</option>
+                            </select>
+                        </div>
+                        <div className="flex space-x-2">
+                            <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="備註 (選填)" className="flex-1 bg-stone-50 p-3 rounded-xl font-bold outline-none" />
+                            <button type="submit" className="bg-[#557A66] text-white px-5 py-3 rounded-xl font-black shadow-md active:scale-95">+</button>
+                        </div>
+                    </form>
+
+                    <div className="space-y-3">
+                        {expenses.map(exp => (
+                            <div key={exp.id} className="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm border border-stone-50">
+                                <div>
+                                    <div className="text-sm font-black text-stone-800">{exp.note || exp.category}</div>
+                                    <div className="text-[10px] text-stone-400 font-bold bg-stone-100 inline-block px-2 py-0.5 rounded mt-1">{exp.category}</div>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    <span className="font-black">¥{exp.amount}</span>
+                                    <button onClick={() => setExpenses(expenses.filter(e => e.id !== exp.id))} className="text-stone-300 hover:text-rose-500"><Icons.Trash /></button>
+                                </div>
+                            </div>
+                        ))}
+                        {expenses.length === 0 && <div className="text-center py-10 text-stone-400 font-bold">尚無消費紀錄</div>}
+                    </div>
+                </div>
+            );
+        }
+
+        /* --- 獨立組件：清單 --- */
+        function ChecklistTab({ checklist, setChecklist }) {
+            const [newItem, setNewItem] = useState('');
+            const toggle = (id) => setChecklist(checklist.map(t => t.id === id ? { ...t, checked: !t.checked } : t));
+            const remove = (id) => setChecklist(checklist.filter(t => t.id !== id));
+            const add = () => { if(newItem) { setChecklist([...checklist, {id: Date.now(), text: newItem, checked: false}]); setNewItem(''); } };
+
+            return (
+                <div className="animate-in fade-in duration-300">
+                    <div className="flex space-x-2 mb-6">
+                        <input type="text" value={newItem} onChange={e => setNewItem(e.target.value)} placeholder="新增行李或任務..." className="flex-1 bg-white p-4 rounded-2xl font-bold outline-none shadow-sm border border-stone-100" />
+                        <button onClick={add} className="bg-stone-800 text-white px-6 rounded-2xl font-black shadow-md active:scale-95">+</button>
+                    </div>
+
+                    <div className="bg-white rounded-3xl shadow-sm border border-stone-100 overflow-hidden">
+                        {checklist.map((item, idx) => (
+                            <div key={item.id} className={`flex items-center p-4 ${idx !== checklist.length-1 ? 'border-b border-stone-50' : ''}`}>
+                                <button onClick={() => toggle(item.id)} className={`flex-1 text-left font-bold text-[15px] transition-all ${item.checked ? 'text-stone-300 line-through' : 'text-stone-700'}`}>
+                                    {item.checked ? '✅ ' : '⬜ '}{item.text}
+                                </button>
+                                <button onClick={() => remove(item.id)} className="text-stone-200 hover:text-rose-500 p-2"><Icons.Trash /></button>
+                            </div>
+                        ))}
                     </div>
                 </div>
             );
@@ -164,9 +263,9 @@
         function TabBtn({ id, icon: Icon, label, active, set }) {
             const isActive = active === id;
             return (
-                <button onClick={() => set(id)} className={`flex flex-col items-center space-y-1.5 transition-all w-16 ${isActive ? 'text-[#557A66]' : 'text-stone-300 active:scale-90'}`}>
+                <button onClick={() => set(id)} className={`flex flex-col items-center space-y-1 w-16 transition-all ${isActive ? 'text-[#557A66]' : 'text-stone-300 active:scale-90'}`}>
                     <Icon />
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${isActive ? 'opacity-100' : 'opacity-50'}`}>{label}</span>
+                    <span className={`text-[10px] font-black uppercase ${isActive ? 'opacity-100' : 'opacity-50'}`}>{label}</span>
                 </button>
             );
         }
